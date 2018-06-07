@@ -136,7 +136,7 @@ app.put('/led', function (req, res) {
     if (typeof state === undefined || state == null || state == "") {
         // User is just setting color
         if (!stateMachine.setLedColor(row, col, color)) {
-            console.log('Failed to set LED (',row,',',column,') to color ',color);
+            console.log('Failed to set LED (',row,',',col,') to color ',color);
             res.status(304).send('Failed');
         }
         else {
@@ -146,7 +146,7 @@ app.put('/led', function (req, res) {
     else if (typeof color === undefined || color == null || color == "") {
         // User is just turning the light on/off
         if (!stateMachine.setLedOnOff(row, col, state)) {
-            console.log('Failed to set LED (',row,',',column,') to state ',state);
+            console.log('Failed to set LED (',row,',',col,') to state ',state);
             res.status(304).send('Failed');
         }
         else {
@@ -156,7 +156,7 @@ app.put('/led', function (req, res) {
     else {
         // User is setting both color and state
         if (!stateMachine.setLed(row, col, color, state)) {
-            console.log('Failed to set LED (',row,',',column,') to color ',color,' and state ',state);
+            console.log('Failed to set LED (',row,',',col,') to color ',color,' and state ',state);
             res.status(304).send('Failed');
         }
         else {

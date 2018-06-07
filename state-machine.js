@@ -113,16 +113,15 @@ PanelStateMachine.prototype.setLineTempo = function (line, tempoBpm) {
     return true;
 }
 
-PanelStateMachine.prototype.setLedColor = function (row, column, color) {
+PanelStateMachine.prototype.setLedColor = function (row, column, colorString) {
     if (!this.__validateRow(row) || !this.__validateColumn(column)) { return false; }
 
-    var color = colorParser(color);
-    if (typeof color.rgba === undefined) {
-        this.emit('error', 'Color is not recognized as a valid HTML/CSS color mapping: ' + color);
+    var color = colorParser(colorString);
+    if (typeof color === undefined || color === null || !color["rgba"]) {
+        this.emit('error', 'Color is not recognized as a valid HTML/CSS color mapping: ' + colorString);
         return false;
     }
-    this.emit('error', JSON.stringify(color), this._currentState);
-    
+
     this._successResponse = "DONE";
     this._successState = this._currentState;
     this._waitingForResponse = true;
@@ -139,16 +138,16 @@ PanelStateMachine.prototype.setLedOnOff = function (row, column, state) {
     this._successState = this._currentState;
     this._waitingForResponse = true;
 
-    this.emit('send', ['ON', row, column].join(' '));
+    this.emit('send', [onOff ? 'ON' : 'OFF', row, column].join(' '));
     return true;
 }
 
-PanelStateMachine.prototype.setLed = function (row, column, color, state) {
+PanelStateMachine.prototype.setLed = function (row, column, colorString, state) {
     if (!this.__validateRow(row) || !this.__validateColumn(column)) { return false; }
     var onOff = this.__parseBoolean(state);
-    var color = colorParser(color);
-    if (typeof(color.rgba) === undefined) {
-        this.emit('error', 'Color is not recognized as a valid HTML/CSS color mapping: ' + color);
+    var color = colorParser(colorString);
+    if (typeof color === undefined || color === null || !color["rgba"]) {
+        this.emit('error', 'Color is not recognized as a valid HTML/CSS color mapping: ' + colorString);
         return false;
     }
 
