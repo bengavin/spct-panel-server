@@ -75,14 +75,14 @@ stateMachine.on('command', function (command, currentState) {
 });
 
 stateMachine.on('error', function (error, currentState) {
-    console.log('ERROR: Received error from state machine ' + error + ' in current state ' + currentState);
+    console.log('ERROR: Received error from state machine ', error, ' in current state ', currentState);
 })
 
 var app = express();
 app.use(bodyParser.json());
 app.set('port', process.env.LIGHTPANEL_PORT || 8800);
 
-app.get('/connect', function(req, res) {
+app.put('/connect', function(req, res) {
     if (!serialOpen) {
       arduino.open(function(err) {
         if (err) {
@@ -100,7 +100,7 @@ app.get('/connect', function(req, res) {
     }
 });
 
-app.get('/disconnect', function(req, res) {
+app.delete('/connect', function(req, res) {
     if (!stateMachine.disconnectFromPanel()) {
         console.log('Error disconnecting from panel');
         res.status(304).send('Disconnect Failed');
@@ -114,8 +114,95 @@ app.get('/state', function (req, res) {
     res.status(200).send({ state: stateMachine.getCurrentState() });
 });
 
+app.put('/tempo/:line?', function (req, res) {
+    var line = parseInt(req.params.line) || 2;
+    var bpm = parseInt(req.body.bpm);
+
+    if (!stateMachine.setLineTempo(line, bpm)) {
+        console.log('Unable to set line tempo: line ', line, ', bpm: ', bpm);
+        res.status(304).send('Failed');
+    }
+    else{
+        res.status(204).send('Set new tempo for line ' + line + ' to ' + bpm + ' beats per minute');
+    }
+});
+
+app.put('/led', function (req, res) {
+    var row = parseInt(req.body.row) || 0;
+    var col = parseInt(req.body.column) || 0;
+    var color = req.body.color;
+    var state = req.body.state;
+
+    if (typeof state === undefined || state == null || state == "") {
+        // User is just setting color
+        if (!stateMachine.setLedColor(row, col, color)) {
+            console.log('Failed to set LED (',row,',',column,') to color ',color);
+            res.status(304).send('Failed');
+        }
+        else {
+            res.status(204).send('Success');
+        }
+    }
+    else if (typeof color === undefined || color == null || color == "") {
+        // User is just turning the light on/off
+        if (!stateMachine.setLedOnOff(row, col, state)) {
+            console.log('Failed to set LED (',row,',',column,') to state ',state);
+            res.status(304).send('Failed');
+        }
+        else {
+            res.status(204).send('Success');
+        }
+    }
+    else {
+        // User is setting both color and state
+        if (!stateMachine.setLed(row, col, color, state)) {
+            console.log('Failed to set LED (',row,',',column,') to color ',color,' and state ',state);
+            res.status(304).send('Failed');
+        }
+        else {
+            res.status(204).send('Success');
+        }
+    }
+});
+
+app.put('/line/:line', function (req, res) {
+    var line = parseInt(req.params.line);
+
+    console.log('Resetting line ' + line);
+    if (!stateMachine.resetLine(line)) {
+        console.log('Error resetting LED line ',line);
+        res.status(304).send('Failed');
+    }
+    else{
+        res.status(204).send('Success');
+    }
+});
+
+app.delete('/line/:line', function (req, res) {
+    var line = parseInt(req.params.line);
+    var reset = req.query.reset;
+
+    if (!stateMachine.stopLine(line, reset)) {
+        console.log('Error stopping LED line ',line,' with reset ',reset);
+        res.status(304).send('Failed');
+    }
+    else {
+        res.status(204).send('Success');
+    }
+});
+
+app.delete('/leds', function (req, res) {
+    if (!stateMachine.turnPanelOff()) {
+        console.log('Error turning off panel');
+        res.status(304).send('Failed');
+    }
+    else {
+        res.status(204).send('Success');
+    }
+});
+
 // Express route for any other unrecognised incoming requests
-app.get('*', function(req, res) {
+app.all('*', function(req, res) {
     res.status(404).send('Unrecognised API call');
 });
 

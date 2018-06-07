@@ -1,5 +1,6 @@
 const EventEmitter = require('events').EventEmitter;
 const util = require('util');
+const colorParser = require('parse-color');
 
 function PanelState() {}
 PanelState.prototype.UNKNOWN = 0;
@@ -93,6 +94,131 @@ PanelStateMachine.prototype.process = function (commandOrResponse) {
 
     return this.processCommand(commandOrResponse);
 }
+
+PanelStateMachine.prototype.setLineTempo = function (line, tempoBpm) {
+    if (!this.__validateRow(line)) {
+        return false;
+    }
+
+    if (tempoBpm <= 0 || tempoBpm > 360) {
+        this.emit('error', 'Tempo beats per minute must be greater than 0 and less than 360');
+        return false;
+    }
+
+    this._successResponse = "TEMPO " + tempoBpm;
+    this._successState = this._currentState;
+    this._waitingForResponse = true;
+
+    this.emit('send', ['SETTEMPO', tempoBpm].join(' '));
+    return true;
+}
+
+PanelStateMachine.prototype.setLedColor = function (row, column, color) {
+    if (!this.__validateRow(row) || !this.__validateColumn(column)) { return false; }
+
+    var color = colorParser(color);
+    if (typeof color.rgba === undefined) {
+        this.emit('error', 'Color is not recognized as a valid HTML/CSS color mapping: ' + color);
+        return false;
+    }
+    this.emit('error', JSON.stringify(color), this._currentState);
+    
+    this._successResponse = "DONE";
+    this._successState = this._currentState;
+    this._waitingForResponse = true;
+
+    this.emit('send', ['SETCOLOR', row, column, color.rgba.join(' ')].join(' '));
+    return true;
+}
+
+PanelStateMachine.prototype.setLedOnOff = function (row, column, state) {
+    if (!this.__validateRow(row) || !this.__validateColumn(column)) { return false; }
+    var onOff = this.__parseBoolean(state);
+
+    this._successResponse = "DONE";
+    this._successState = this._currentState;
+    this._waitingForResponse = true;
+
+    this.emit('send', ['ON', row, column].join(' '));
+    return true;
+}
+
+PanelStateMachine.prototype.setLed = function (row, column, color, state) {
+    if (!this.__validateRow(row) || !this.__validateColumn(column)) { return false; }
+    var onOff = this.__parseBoolean(state);
+    var color = colorParser(color);
+    if (typeof(color.rgba) === undefined) {
+        this.emit('error', 'Color is not recognized as a valid HTML/CSS color mapping: ' + color);
+        return false;
+    }
+
+    this._successResponse = "DONE";
+    this._successState = this._currentState;
+    this._waitingForResponse = true;
+
+    this.emit('send', [onOff ? 'ON' : 'OFF', row, column, color.rgba.join(' ')].join(' '));
+
+    return true;
+}
+
+PanelStateMachine.prototype.resetLine = function (line) {
+    if (!this.__validateRow(line)) { return false; }
+
+    this._successResponse = ["OK", line].join(' ');
+    this._successState = this._currentState;
+    this._waitingForResponse = true;
+
+    this.emit('send', ['RESET',line].join(' '));
+    return true;
+}
+
+PanelStateMachine.prototype.stopLine = function (line, reset) {
+    if (!this.__validateRow(line)) { return false; }
+    var reset = this.__parseBoolean(reset, true);
+
+    this._successResponse = ["STOPPED", line].join(' ');
+    this._successState = this._currentState;
+    this._waitingForResponse = true;
+
+    this.emit('send', ['STOP',line,reset ? 1 : 0].join(' '));
+    return true;
+}
+
+PanelStateMachine.prototype.turnPanelOff = function () {
+    this._successResponse = "OFF";
+    this._successState = this._currentState;
+    this._waitingForResponse = true;
+
+    this.emit('send', 'PANELOFF');
+    return true;
+}
+
+PanelStateMachine.prototype.__validateRow = function (row) {
+    if (row < 0 || row > 2) {
+        this.emit('error', 'Row number must be 0, 1 or 2');
+        return false;
+    }
+
+    return true;
+}
+
+PanelStateMachine.prototype.__validateColumn = function (column) {
+    if (column < 0 || column > 7) {
+        this.emit('error', 'Column number must be 0 - 7');
+        return false;
+    }
+
+    return true;
+}
+
+PanelStateMachine.prototype.__parseBoolean = function (input, defaultValue) {
+    switch((input || "").toLowerCase().trim()){
+        case "true": case "yes": case "1": case "on": return true;
+        case "false": case "no": case "0": case "off": return false;
+        default: return defaultValue || false;
+    }
+}
+
 
 exports.PanelStateMachine = PanelStateMachine;
 module.exports = exports;
