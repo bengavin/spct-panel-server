@@ -160,6 +160,17 @@ PanelStateMachine.prototype.setLed = function (row, column, colorString, state) 
     return true;
 }
 
+PanelStateMachine.prototype.startLine = function (line) {
+    if (!this.__validateRow(line)) { return false; }
+
+    this._successResponse = ["PLAYING", line].join(' ');
+    this._successState = this._currentState;
+    this._waitingForResponse = true;
+
+    this.emit('send', ['PLAY',line].join(' '));
+    return true;
+}
+
 PanelStateMachine.prototype.resetLine = function (line) {
     if (!this.__validateRow(line)) { return false; }
 

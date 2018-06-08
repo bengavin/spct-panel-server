@@ -165,6 +165,19 @@ app.put('/led', function (req, res) {
     }
 });
 
+app.post('/line/:line', function (req, res) {
+    var line = parseInt(req.params.line);
+
+    console.log('Starting line ' + line);
+    if (!stateMachine.startLine(line)) {
+        console.log('Error starting LED line ',line);
+        res.status(304).send('Failed');
+    }
+    else{
+        res.status(204).send('Success');
+    }
+});
+
 app.put('/line/:line', function (req, res) {
     var line = parseInt(req.params.line);
 
