@@ -160,14 +160,41 @@ PanelStateMachine.prototype.setLed = function (row, column, colorString, state) 
     return true;
 }
 
-PanelStateMachine.prototype.startLine = function (line) {
+PanelStateMachine.prototype.startLine = function (line, pattern, speed, colors) {
     if (!this.__validateRow(line)) { return false; }
 
     this._successResponse = ["PLAYING", line].join(' ');
     this._successState = this._currentState;
     this._waitingForResponse = true;
 
-    this.emit('send', ['PLAY',line].join(' '));
+    var commandToSend = ['PLAY',line].join(' ');
+    if (pattern) {
+        commandToSend = [commandToSend, pattern].join(' ');
+
+        if (speed) {
+            commandToSend = [commandToSend, speed].join(' ');
+        }
+
+        if (colors !== null && colors.length > 0) {
+            colorString = "";
+            numColors = 0;
+
+            for (var i = 0; i < colors.length; i++) {
+                var color = colorParser(colors[i]);
+                if (typeof color === undefined || color === null || !color["rgba"]) {
+                    this.emit('error', 'Color is not recognized as a valid HTML/CSS color mapping: ' + colorString);
+                    return false;
+                }
+
+                colorString = numColors > 0 ? [colorString, color.rgba.join(' ')].join(' ') : color.rgba.join(' ');
+                numColors++;
+            }
+
+            commandToSend = [commandToSend, numColors, colorString].join(' ');
+        }
+    }
+
+    this.emit('send', commandToSend);
     return true;
 }
 

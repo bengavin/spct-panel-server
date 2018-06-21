@@ -9,7 +9,7 @@ var rpio = require('rpio');
 var pwrLedOpen = false;
 const pwrLedPin = 11;
 var serialOpen = false;
-var arduino = new SerialPort('/dev/serial0', { baudRate: 9600, autoOpen: false });;
+var arduino = new SerialPort('/dev/serial0', { baudRate: 57600, autoOpen: false });;
 var stateMachine = new PanelStateMachine();
 
 // Wire up Arduino (Serial Port) events
@@ -167,9 +167,12 @@ app.put('/led', function (req, res) {
 
 app.post('/line/:line', function (req, res) {
     var line = parseInt(req.params.line);
+    var pattern = req.body.pattern;
+    var speed = req.body.speed;
+    var colors = req.body.colors;
 
     console.log('Starting line ' + line);
-    if (!stateMachine.startLine(line)) {
+    if (!stateMachine.startLine(line, pattern, speed, colors)) {
         console.log('Error starting LED line ',line);
         res.status(304).send('Failed');
     }
